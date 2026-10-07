@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RevoCity Inventar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700&family=Anton&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Grundfarben (aus dem Screenshot gemessen) */
+    --panel:        #0a0a09;
+    --frame-line:   rgba(255, 255, 255, 0.075);
+    --tan:          #c9a586;
+    --tan-light:    #c39d7d;
+    --tan-dark:     #7a624d;
+    --text:         #f1f1f0;
+    --text-muted:   #7b7977;
+    --text-field:   #b3b3b2;
+
+    --font: 'Gilroy', 'Urbanist', 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  /* Vorschau-Hintergrund (für FiveM einfach "background: transparent" setzen) */
+  body {
+    font-family: var(--font);
+    background:
+      radial-gradient(60% 45% at 20% 18%, rgba(255, 196, 120, 0.10), transparent 70%),
+      radial-gradient(50% 40% at 85% 95%, rgba(255, 170, 90, 0.08), transparent 70%),
+      linear-gradient(180deg, #0b0d14 0%, #0d0e12 45%, #17130f 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ PANEL ============ */
+  .inv {
+    position: relative;
+    width: 638px;
+    padding: 15px;
+    border-radius: 12px;
+    background: var(--panel);
+    border: 1px solid rgba(201, 165, 134, 0.16);
+    border-top-color: rgba(201, 165, 134, 0.28);
+    border-bottom-color: rgba(201, 165, 134, 0.30);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.6),
+      0 30px 80px rgba(0, 0, 0, 0.65),
+      0 0 40px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* warmes Umgebungslicht oben links / unten rechts wie im Original */
+  .inv::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(150px 110px at 140px 0px, rgba(140, 108, 80, 0.42), transparent 100%),
+      radial-gradient(260px 150px at 110px 10px, rgba(120, 92, 70, 0.30), transparent 100%),
+      radial-gradient(170px 70px at 520px 806px, rgba(150, 115, 85, 0.38), transparent 100%),
+      linear-gradient(180deg, rgba(60, 46, 36, 0.20), transparent 30%);
+  }
+
+  /* Innerer Rahmen */
+  .inv-frame {
+    position: relative;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    padding: 11px 11px 12px;
+    z-index: 1;
+  }
+
+  /* leicht goldener Schimmer auf der oberen linken Rahmenkante */
+  .inv-frame::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 9px;
+    padding: 1px;
+    background:
+      radial-gradient(240px 260px at 16% 0%, rgba(201, 165, 134, 0.42), transparent 100%),
+      radial-gradient(190px 70px at 80% 100%, rgba(201, 165, 134, 0.60), transparent 100%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.0) 0%, rgba(255, 255, 255, 0.075) 20%, rgba(255, 255, 255, 0.075) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ============ HEADER ============ */
+  .inv-tab {
+    position: absolute;
+    top: -17px;
+    left: 50%;
+    width: 136px;
+    height: 110px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(118, 92, 72, 0.42) 0%, rgba(110, 86, 66, 0.30) 22%, rgba(95, 74, 58, 0.14) 55%, transparent 100%);
+    pointer-events: none;
+  }
+  .inv-tab::after {
+    content: "";
+    position: absolute;
+    top: 16px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #c49f80;
+    box-shadow: 0 0 6px rgba(201, 165, 134, 0.35);
+  }
+
+  .inv-close {
+    position: absolute;
+    top: 12px;
+    right: 11px;
+    width: 21px;
+    height: 21px;
+    border: none;
+    border-radius: 3px;
+    background: linear-gradient(145deg, #e32c2c 0%, #cf2626 45%, #8e1b1b 100%);
+    box-shadow: 0 0 8px rgba(215, 40, 40, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: filter .15s;
+  }
+  .inv-close:hover { filter: brightness(1.12); }
+  .inv-close svg { width: 13px; height: 13px; }
+
+  .inv-logo {
+    display: block;
+    margin: 11px auto 0;
+    width: 96px;
+    height: 38px;
+  }
+
+  .inv-head {
+    display: flex;
+    align-items: center;
+    margin-top: 23px;
+    height: 35px;
+  }
+
+  .inv-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    flex: 1;
+  }
+  .inv-title-icon {
+    width: 29px;
+    height: 29px;
+    border-radius: 4px;
+    background: linear-gradient(145deg, #c4a68a 0%, #b08f72 45%, #846b55 100%);
+    box-shadow: 0 0 12px rgba(201, 165, 134, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    display: grid;
+    place-items: center;
+  }
+  .inv-title-icon svg { width: 15px; height: 15px; }
+  .inv-title h1 {
+    font-size: 13.8px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 16px;
+  }
+  .inv-title p {
+    font-size: 13.6px;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 17px;
+  }
+
+  .inv-search {
+    width: 130px;
+    height: 35px;
+    border-radius: 5px;
+    background: #151515;
+    border: 1px solid rgba(255, 255, 255, 0.035);
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 4px;
+    gap: 8px;
+  }
+  .inv-search-icon {
+    flex: 0 0 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: linear-gradient(160deg, #4b4a48, #3a3937);
+    display: grid;
+    place-items: center;
+  }
+  .inv-search-icon svg { width: 12px; height: 12px; }
+  .inv-search input {
+    width: 100%;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: var(--font);
+    font-size: 14.2px;
+    font-weight: 500;
+    color: #e6e6e6;
+  }
+  .inv-search input::placeholder { color: var(--text-field); opacity: 1; }
+
+  .inv-amount {
+    width: 130px;
+    height: 35px;
+    margin-left: 10px;
+    border-radius: 5px;
+    background: #0a0a0a;
+    border: 1px solid #222222;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    color: #e6e6e6;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .inv-amount::placeholder { color: var(--text-field); opacity: 1; }
+  .inv-amount::-webkit-outer-spin-button,
+  .inv-amount::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* ============ GEWICHT ============ */
+  .inv-weight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 11px;
+    height: 26px;
+  }
+  .inv-bar {
+    flex: 1;
+    height: 26px;
+    border-radius: 5px;
+    background: #090909;
+    border: 1px solid #2a2928;
+    padding: 4px;
+  }
+  .inv-bar-fill {
+    height: 100%;
+    width: 31.36%;
+    border-radius: 3px;
+    background:
+      repeating-linear-gradient(109deg, #cba888 0 4.7px, #7f6750 4.7px 7.56px);
+    -webkit-mask: linear-gradient(90deg, #000 0%, rgba(0,0,0,.92) 55%, rgba(0,0,0,.55) 100%);
+            mask: linear-gradient(90deg, #000 0%, rgba(0,0,0,.92) 55%, rgba(0,0,0,.55) 100%);
+    transition: width .4s ease;
+  }
+  .inv-kg {
+    width: 89px;
+    height: 26px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #c19b7b 0%, #a7856a 50%, #7b634d 100%);
+    box-shadow: 0 0 14px rgba(201, 165, 134, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    display: grid;
+    place-items: center;
+    font-size: 13.2px;
+    font-weight: 500;
+    color: rgba(255, 244, 234, 0.58);
+    white-space: nowrap;
+  }
+  .inv-kg b { color: #f6f1ec; font-weight: 500; }
+
+  /* ============ GRID ============ */
+  .inv-grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12.35px 12.67px;
+  }
+
+  .item {
+    position: relative;
+    height: 136px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background:
+      radial-gradient(70px 46px at 50% 0%, rgba(150, 118, 92, 0.30), transparent 100%),
+      linear-gradient(180deg, #3c3733 0%, #322e2b 22%, #2a2826 45%, #252423 68%, #282725 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 14px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s, filter .15s;
+  }
+  .item:hover { border-color: rgba(201, 165, 134, 0.45); filter: brightness(1.08); }
+
+  /* Raster-Muster in der Karte (5x5 Linien, nach unten ausgeblendet) */
+  .item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle, rgba(255, 255, 255, 0.10) 0 1.1px, transparent 1.6px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+    background-size: 27.2px 27.2px;
+    background-position: -14px -14px, -1px 0, 0 -1px;
+    -webkit-mask: linear-gradient(180deg, #000 0%, rgba(0,0,0,.75) 35%, rgba(0,0,0,.2) 60%, transparent 75%);
+            mask: linear-gradient(180deg, #000 0%, rgba(0,0,0,.75) 35%, rgba(0,0,0,.2) 60%, transparent 75%);
+    pointer-events: none;
+  }
+
+  .item-name {
+    position: absolute;
+    top: 8px;
+    left: 5px;
+    right: 5px;
+    text-align: center;
+    font-size: 14.2px;
+    font-weight: 500;
+    line-height: 18px;
+    color: #eeeeec;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-img {
+    position: absolute;
+    left: 50%;
+    top: 31px;
+    width: 64px;
+    height: 64px;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 0 7px var(--glow, rgba(255, 240, 225, 0.22)));
+  }
+  .item-img svg { width: 64px; height: 64px; display: block; }
+
+  .item-qty,
+  .item-kg {
+    position: absolute;
+    bottom: 8px;
+    height: 25px;
+    border-radius: 3px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .item-qty {
+    left: 8px;
+    width: 40px;
+    font-size: 12.6px;
+    font-weight: 600;
+    color: #f8f4f0;
+    background: linear-gradient(180deg, #c39d7d 0%, #a17f64 50%, #7a624d 100%);
+    box-shadow: 0 2px 12px rgba(201, 158, 120, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+  .item-kg {
+    right: 8px;
+    width: 51px;
+    color: #b8957a;
+    background: linear-gradient(180deg, #635448 0%, #574a40 50%, #4a4039 100%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .inv.hidden { display: none; }
+  .item.is-hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ================= SVG-Bibliothek (Item-Bilder) ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Verläufe -->
+    <linearGradient id="g-bandage-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e9e9ec"/><stop offset="1" stop-color="#b9b9c0"/>
+    </linearGradient>
+    <linearGradient id="g-bandage-red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6a73"/><stop offset=".5" stop-color="#e02c3f"/><stop offset="1" stop-color="#a51a2b"/>
+    </linearGradient>
+    <linearGradient id="g-beer" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f6b928"/><stop offset=".35" stop-color="#ffd54a"/><stop offset="1" stop-color="#f4b524"/>
+    </linearGradient>
+    <linearGradient id="g-steel-top" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#5d6065"/><stop offset="1" stop-color="#8d9095"/>
+    </linearGradient>
+    <linearGradient id="g-steel-web" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d4d6d9"/><stop offset="1" stop-color="#a5a8ac"/>
+    </linearGradient>
+    <radialGradient id="g-rock" cx=".35" cy=".3" r=".8">
+      <stop offset="0" stop-color="#e2ded8"/><stop offset=".5" stop-color="#a49e96"/><stop offset="1" stop-color="#5f5a53"/>
+    </radialGradient>
+    <radialGradient id="g-bun" cx=".4" cy=".25" r=".85">
+      <stop offset="0" stop-color="#fbd2b0"/><stop offset=".45" stop-color="#eda278"/><stop offset="1" stop-color="#c86c3e"/>
+    </radialGradient>
+    <linearGradient id="g-bun-bottom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3b07a"/><stop offset="1" stop-color="#c7743f"/>
+    </linearGradient>
+    <linearGradient id="g-caller" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f293c"/><stop offset=".5" stop-color="#0e131d"/><stop offset="1" stop-color="#05070b"/>
+    </linearGradient>
+    <linearGradient id="g-caller-screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fa6ff"/><stop offset="1" stop-color="#0d4fb8"/>
+    </linearGradient>
+    <radialGradient id="g-plate" cx=".5" cy=".45" r=".55">
+      <stop offset="0" stop-color="#fbf7f1"/><stop offset=".8" stop-color="#ece6de"/><stop offset="1" stop-color="#cfcac4"/>
+    </radialGradient>
+    <linearGradient id="g-wrap" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4d58a"/><stop offset=".6" stop-color="#e2b45c"/><stop offset="1" stop-color="#c58d3a"/>
+    </linearGradient>
+    <linearGradient id="g-iron-top" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#9aa1a9"/><stop offset="1" stop-color="#d3d8dd"/>
+    </linearGradient>
+    <linearGradient id="g-can" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#050505"/><stop offset=".3" stop-color="#2c2c2c"/><stop offset=".55" stop-color="#121212"/><stop offset="1" stop-color="#030303"/>
+    </linearGradient>
+    <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe169"/><stop offset=".55" stop-color="#e9b322"/><stop offset="1" stop-color="#a87412"/>
+    </linearGradient>
+    <linearGradient id="g-silver" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a8a8a"/><stop offset=".4" stop-color="#e6e6e6"/><stop offset="1" stop-color="#7a7a7a"/>
+    </linearGradient>
+    <linearGradient id="g-cake-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbd0c2"/><stop offset=".5" stop-color="#f3a690"/><stop offset=".62" stop-color="#e86a4c"/><stop offset="1" stop-color="#c8432d"/>
+    </linearGradient>
+    <linearGradient id="g-cake-plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6f7ff"/><stop offset=".5" stop-color="#9fd3f0"/><stop offset="1" stop-color="#4f97c4"/>
+    </linearGradient>
+    <radialGradient id="g-straw" cx=".35" cy=".3" r=".7">
+      <stop offset="0" stop-color="#ff7b7b"/><stop offset=".6" stop-color="#e3283b"/><stop offset="1" stop-color="#a3121f"/>
+    </radialGradient>
+    <linearGradient id="g-juice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fcd0d9"/><stop offset="1" stop-color="#f19fb2"/>
+    </linearGradient>
+    <mask id="m-mic">
+      <rect x="0" y="0" width="64" height="64" fill="#fff"/>
+      <g stroke="#000" stroke-width="1.3" stroke-linecap="round">
+        <path d="M22 25h5.4M22 29.5h5.4M22 34h5.4M36.6 25H42M36.6 29.5H42M36.6 34H42"/>
+      </g>
+    </mask>
+    <!-- Eisenbarren -->
+    <g id="ingot">
+      <path d="M0 8h11l18-13H18z" fill="url(#g-iron-top)"/>
+      <path d="M11 8v5l18-13v-5z" fill="#79808a"/>
+      <path d="M0 8h11v5H0z" fill="#b3b9c0"/>
+      <path d="M2.6 9.4h5.8M2.6 11.6h5.8M5.5 9.4v2.2" stroke="#25282c" stroke-width=".9"/>
+      <path d="M0 8h11l18-13H18zM11 8v5l18-13v-5M0 8v5h11" fill="none" stroke="#0e0f11" stroke-width="1.6" stroke-linejoin="round"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="inv" id="inventory">
+  <div class="inv-frame">
+    <div class="inv-tab"></div>
+
+    <button class="inv-close" id="inv-close" aria-label="Schließen">
+      <svg viewBox="0 0 14 14"><path d="M2 2l10 10M12 2L2 12" stroke="#3b0909" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+
+    <!-- Logo -->
+    <svg class="inv-logo" viewBox="0 0 96 38" aria-label="RevoCity">
+      <defs>
+        <g id="logo-revo">
+          <path fill-rule="evenodd" d="M0 0H13.5A8 8 0 0 1 17 15.2L22 28H15L10.6 17H6.4V28H0ZM6.4 5.2H13.2A2.9 2.9 0 0 1 13.2 11H6.4Z"/>
+          <path d="M20 0H37V5.6H26.4V11.2H35.4V16.8H26.4V22.4H37V28H20Z"/>
+          <path d="M36 0H43L49.4 19.6L55.8 0H62.8L53.4 28H45.4Z"/>
+          <path fill-rule="evenodd" d="M75.2 0A14 14 0 1 1 75.2 28A14 14 0 1 1 75.2 0ZM75.2 6.2A7.8 7.8 0 1 0 75.2 21.8A7.8 7.8 0 1 0 75.2 6.2Z"/>
+        </g>
+        <clipPath id="logo-top" clipPathUnits="userSpaceOnUse"><rect x="-5" y="-5" width="200" height="17"/></clipPath>
+        <filter id="logo-glow" x="-60%" y="-90%" width="220%" height="280%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.6" result="b"/>
+          <feFlood flood-color="#ffffff" flood-opacity=".5"/>
+          <feComposite in2="b" operator="in" result="g"/>
+          <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- REVO: untere Hälfte dunkel mit Kontur, obere Hälfte gold -->
+      <use href="#logo-revo" transform="translate(6.5 1) scale(.965)" fill="#2a2018" stroke="#c4a081" stroke-width="2" paint-order="stroke" stroke-linejoin="round"/>
+      <use href="#logo-revo" transform="translate(6.5 1) scale(.965)" fill="#c9a484" stroke="#c9a484" stroke-width="2" stroke-linejoin="round" clip-path="url(#logo-top)"/>
+      <!-- CITY -->
+      <g filter="url(#logo-glow)">
+        <text x="35.6" y="31" font-family="'Anton', 'Impact', sans-serif" font-size="19" fill="#ffffff"
+              textLength="29.6" lengthAdjust="spacingAndGlyphs" transform="skewX(-12)" transform-origin="48 26"
+              stroke="#0d0b09" stroke-width=".5" paint-order="stroke">CITY</text>
+      </g>
+    </svg>
+
+    <!-- Kopfzeile -->
+    <div class="inv-head">
+      <div class="inv-title">
+        <div class="inv-title-icon">
+          <svg viewBox="0 0 16 16" fill="#ffffff">
+            <path d="M6 1.2h4a1 1 0 0 1 1 1v1.1h-1.3v-.9H6.3v.9H5V2.2a1 1 0 0 1 1-1z"/>
+            <path d="M3 7.2A4.2 4.2 0 0 1 7.2 3h1.6A4.2 4.2 0 0 1 13 7.2v6.1a1.7 1.7 0 0 1-1.7 1.7H4.7A1.7 1.7 0 0 1 3 13.3z"/>
+            <path d="M3.3 8.6h9.4v1.1H3.3z" fill="#b39274"/>
+            <rect x="6.6" y="8.1" width="2.8" height="2.6" rx=".5" fill="#ffffff" stroke="#b39274" stroke-width=".6"/>
+            <path d="M5 12.4h6" stroke="#b39274" stroke-width=".9" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Inventar</h1>
+          <p>Was du bei dir trägst</p>
+        </div>
+      </div>
+
+      <label class="inv-search">
+        <span class="inv-search-icon">
+          <svg viewBox="0 0 12 12" fill="none" stroke="#cfcfcf" stroke-width="1.3" stroke-linecap="round">
+            <circle cx="5.2" cy="5.2" r="3.7"/><path d="M8 8l2.6 2.6"/>
+          </svg>
+        </span>
+        <input type="text" id="inv-search" placeholder="Suchen..." autocomplete="off" spellcheck="false">
+      </label>
+
+      <input class="inv-amount" id="inv-amount" type="number" min="1" placeholder="Menge">
+    </div>
+
+    <!-- Gewicht -->
+    <div class="inv-weight">
+      <div class="inv-bar"><div class="inv-bar-fill" id="inv-bar-fill"></div></div>
+      <div class="inv-kg" id="inv-kg"><span><b>392</b>/1250 KG</span></div>
+    </div>
+
+    <!-- Items -->
+    <div class="inv-grid" id="inv-grid"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ITEM-BILDER (SVG, 64x64)
+   ========================================================= */
+const ICONS = {
+  semtex: `
+    <svg viewBox="0 0 64 64">
+      <path fill="#dcc09e" d="M16.5 8H29l3 2.6L35 8h12.5a2 2 0 0 1 2 2v19.6L47.2 32l2.3 2.4V54a2 2 0 0 1-2 2H35l-3-2.6L29 56H16.5a2 2 0 0 1-2-2V34.4l2.3-2.4-2.3-2.4V10a2 2 0 0 1 2-2z"/>
+      <path fill="#cfb08b" d="M14.5 34.4l2.3-2.4h30.4l2.3 2.4V54a2 2 0 0 1-2 2H35l-3-2.6L29 56H16.5a2 2 0 0 1-2-2z" opacity=".35"/>
+      <rect x="12.6" y="22" width="38.8" height="4.4" rx="1.6" fill="#9db0b5"/>
+      <rect x="12.6" y="38" width="38.8" height="4.4" rx="1.6" fill="#9db0b5"/>
+      <circle cx="32" cy="32" r="11.6" fill="#f5f3f0"/>
+      <circle cx="32" cy="32" r="11.6" fill="none" stroke="#dcdcdc" stroke-width=".8"/>
+      <path d="M32 22.6v2.6M32 38.8v2.6M22.6 32h2.6M38.8 32h2.6" stroke="#9aa5a8" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M32 32l4.6-5.2" stroke="#d63c35" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="2.1" fill="#d63c35"/>
+    </svg>`,
+
+  ast: `
+    <svg viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11.5 54C17 49 22 44.5 28 40.5S39 33 44 27.5c3-3.4 5.2-8 6.6-12.5L52 10" stroke="#4f321c" stroke-width="4.6"/>
+      <path d="M44 27.5c3.2-.6 6.6-1.4 9.5-2.6" stroke="#4f321c" stroke-width="2.8"/>
+      <path d="M28 40.5c-.4-2.6-.6-4.6-.2-7" stroke="#4f321c" stroke-width="2.4"/>
+      <path d="M36.5 34.5l3.6 2.6" stroke="#4f321c" stroke-width="2.2"/>
+      <path d="M50.6 15c1.2-.2 2.4-.2 3.4.4" stroke="#4f321c" stroke-width="1.9"/>
+      <path d="M11 53.2C16.5 48.4 21.6 44 27.6 39.8S38.6 32.2 43.4 26.8c3-3.4 5-7.8 6.4-12.2L51.2 9.6" stroke="#8a6448" stroke-width="2"/>
+      <path d="M12.6 51.4l3-2.6M19 46.2l3.4-2.8M25.4 41.4l2.6-1.8M31.6 37.4l3.4-2.2M38.6 32.6l2.6-2M45 25.6l1.8-2.6M48.4 19l1-2.6" stroke="#c4a888" stroke-width="1"/>
+      <path d="M44 27c3-.6 6.2-1.3 9-2.4" stroke="#9c7656" stroke-width="1.2"/>
+      <path d="M27.6 40c-.3-2.4-.4-4.2-.1-6.4" stroke="#9c7656" stroke-width="1.1"/>
+      <path d="M15.4 50.6l1.8.4M22 45.2l1.6.6M33 37.2l1.4.8M41.2 30l1.2 1M47 22.6l1.2.6" stroke="#3a2414" stroke-width="1.1"/>
+    </svg>`,
+
+  bandage: `
+    <svg viewBox="0 0 64 64">
+      <g transform="rotate(-32 32 31)">
+        <rect x="15.5" y="22.5" width="31.5" height="17" rx="3.4" fill="url(#g-bandage-body)"/>
+        <rect x="20.5" y="22.5" width="13" height="17" fill="url(#g-bandage-red)"/>
+        <path d="M27 27.8v6.4M23.8 31h6.4" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round"/>
+        <ellipse cx="47" cy="31" rx="3.5" ry="8.5" fill="#f4f4f6"/>
+        <ellipse cx="47" cy="31" rx="3.5" ry="8.5" fill="none" stroke="#cacad0" stroke-width=".7"/>
+        <ellipse cx="47.1" cy="31" rx="2.2" ry="5.6" fill="none" stroke="#dadadf" stroke-width=".6"/>
+        <ellipse cx="47.2" cy="31" rx="1" ry="2.6" fill="#d0d0d6"/>
+        <rect x="15.5" y="23.6" width="31.5" height="2.4" rx="1.1" fill="#ffffff" opacity=".6"/>
+      </g>
+    </svg>`,
+
+  bier: `
+    <svg viewBox="0 0 64 64">
+      <path d="M40.5 25h4.8a6.4 6.4 0 0 1 6.4 6.4v5.6a6.4 6.4 0 0 1-6.4 6.4h-4.8" fill="none" stroke="#f6dfb2" stroke-width="3.6"/>
+      <rect x="13" y="18" width="28" height="34" rx="1.5" fill="url(#g-beer)"/>
+      <path d="M20 30v14M27 30v14M34 30v14" stroke="#e3a314" stroke-width="1.8" stroke-linecap="round"/>
+      <rect x="12.6" y="49.5" width="28.8" height="5" rx="1.2" fill="#fdf0d3"/>
+      <path fill="#fdf3dd" d="M11.6 21.5c-1.4-3.6 1-7 4.6-7 .9-3.2 4.2-4.6 7-3.2 1.6-2.4 5.6-3 7.8-.8 2.4-1.8 6.2-.8 7 2 3.6-.4 6 2.6 5 5.8 1.6 1.6 1 4.2-1 5H17v4.4c0 1.2-1 2-2 2s-2-.8-2-2v-3.8c-.8-.6-1.4-1.4-1.4-2.4z"/>
+      <circle cx="21" cy="17" r="1.1" fill="#efdcb5"/><circle cx="31" cy="14" r="1.2" fill="#efdcb5"/><circle cx="37.6" cy="17.4" r=".9" fill="#efdcb5"/><circle cx="26" cy="19.4" r=".8" fill="#efdcb5"/>
+    </svg>`,
+
+  blei: `
+    <svg viewBox="0 0 64 64" stroke="#0d0d0d" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M21.5 34v15l22-20V14z" fill="url(#g-steel-web)"/>
+      <path d="M21.5 49h6l22-20h-6z" fill="#9b9ea2"/>
+      <path d="M27.5 49v4.5l22-20V29z" fill="#b6b8bb"/>
+      <path d="M27.5 30v4l22-20v-4z" fill="#c0c2c5"/>
+      <path d="M12.5 30h15l22-20h-15z" fill="url(#g-steel-top)"/>
+      <path d="M12.5 30h15v4h-6v15h6v4.5h-15V49h6V34h-6z" fill="#ececed"/>
+    </svg>`,
+
+  mikro: `
+    <svg viewBox="0 0 64 64">
+      <rect x="23.5" y="7.8" width="17" height="30.5" rx="8.5" fill="#0b0b0b" mask="url(#m-mic)"/>
+      <path d="M19 27v2.5a13 13 0 0 0 26 0V27" fill="none" stroke="#0b0b0b" stroke-width="2.7" stroke-linecap="round"/>
+      <path d="M32 42.5V55M23.6 55.4h16.8" stroke="#0b0b0b" stroke-width="2.7" stroke-linecap="round"/>
+      <rect x="25.6" y="10.4" width="2" height="9" rx="1" fill="#2e2e2e" opacity=".75"/>
+    </svg>`,
+
+  stein: `
+    <svg viewBox="0 0 64 64">
+      <path d="M13 33.5c-.6-7.4 5.4-13.8 13.6-15.2 8-1.4 16.6.2 21.4 5.4 3.8 4 4.6 10.2 2.6 14.6-2 4.2-7.6 6.4-15 6.2-9.8-.2-21.6-.4-22.6-11z" fill="url(#g-rock)"/>
+      <path d="M29.6 22.4c4.6 1.6 7.6 5.8 9.4 10.4 1.4 3.4 4.6 5.6 8.8 5.8l2-.6c-2.2 3.6-7.6 5.6-13.2 5.4-4.4-.2-7.8-3-9.2-7-1.4-4.2-.4-10 2.2-14z" fill="#5f452b"/>
+      <path d="M31 25.4c3 1.8 4.8 5 6 8.4 1 2.8 3.2 5 6.4 6" stroke="#8b6a45" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <path d="M29 30.4c1 3 2.4 6.4 5.6 8.6M37.4 27c2.4 1.2 4.6 3.4 6 5.8" stroke="#7a5a38" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <g fill="#4e4943" opacity=".7">
+        <circle cx="18" cy="29.4" r=".9"/><circle cx="22.4" cy="26" r=".7"/><circle cx="16.4" cy="35.4" r=".8"/><circle cx="23.6" cy="36.6" r=".9"/><circle cx="20" cy="39.6" r=".7"/>
+        <circle cx="45" cy="24.6" r=".8"/><circle cx="48.2" cy="30.6" r=".7"/><circle cx="21" cy="22.6" r=".6"/><circle cx="26.4" cy="40.6" r=".7"/><circle cx="25.6" cy="30.8" r=".8"/><circle cx="41" cy="21.6" r=".6"/>
+      </g>
+      <g fill="#ffffff" opacity=".7">
+        <circle cx="20" cy="25" r=".8"/><circle cx="25.4" cy="22" r=".7"/><circle cx="16" cy="31.4" r=".6"/><circle cx="43" cy="22.6" r=".7"/><circle cx="19.6" cy="33.6" r=".6"/><circle cx="23.2" cy="28.6" r=".5"/><circle cx="34.6" cy="20" r=".6"/>
+      </g>
+    </svg>`,
+
+  burger: `
+    <svg viewBox="0 0 64 64">
+      <g transform="rotate(-6 32 32)">
+        <path d="M14.5 42c0-1.6 1.4-2.6 3-2.6h29c1.6 0 3 1 3 2.6 0 4.6-6.8 7.6-17.5 7.6S14.5 46.6 14.5 42z" fill="url(#g-bun-bottom)"/>
+        <path d="M36 37.5l14 1.2-5 5.2z" fill="#f5cf62"/>
+        <path d="M14 37.4c0-2.2 7.6-3.2 18-3.2s18 1 18 3.2-7.6 3.8-18 3.8-18-1.6-18-3.8z" fill="#9e2a26"/>
+        <path d="M13.6 35.6c0-2 7.8-3 18.4-3s18.4 1 18.4 3-7.8 3.2-18.4 3.2-18.4-1.2-18.4-3.2z" fill="#d8443a"/>
+        <path d="M12.2 32.6c2 1.4 3.4 2.6 5.6 2 2.2-.6 3.6 1.4 6 .8 2.4-.6 3.6 1.2 6 .6 2.4-.6 3.8 1.2 6.4.4 2.4-.8 4 .8 6.2 0 2.2-.8 3.6.2 5.8-1.4l-.6-2.4H13z" fill="#4fa83a"/>
+        <path d="M12 31c0-11 8.6-18 20-18s20 7 20 18c0 2-7.6 2.6-20 2.6S12 33 12 31z" fill="url(#g-bun)"/>
+        <ellipse cx="26" cy="17.6" rx="5" ry="2.2" fill="#ffffff" opacity=".22"/>
+      </g>
+      <circle cx="50.5" cy="18" r=".9" fill="#e9874a"/><circle cx="48" cy="14.8" r=".6" fill="#e9874a"/><circle cx="11.6" cy="39.4" r=".8" fill="#e9874a"/>
+    </svg>`,
+
+  caller: `
+    <svg viewBox="0 0 64 64">
+      <g transform="rotate(-22 32 32)">
+        <rect x="19.6" y="5.5" width="3.6" height="10" rx="1.5" fill="#121722" stroke="#2f5d9a" stroke-width=".6"/>
+        <rect x="17.5" y="12" width="27" height="40" rx="5.5" fill="url(#g-caller)" stroke="#2c5a96" stroke-width="1"/>
+        <rect x="15.6" y="18" width="3.4" height="27" rx="1.6" fill="#0f141e" stroke="#2a4f82" stroke-width=".6"/>
+        <rect x="43" y="18" width="3.4" height="27" rx="1.6" fill="#0f141e" stroke="#2a4f82" stroke-width=".6"/>
+        <rect x="22.6" y="17" width="16.8" height="12.6" rx="2.2" fill="#040a18"/>
+        <rect x="24" y="18.4" width="14" height="9.8" rx="1.6" fill="url(#g-caller-screen)"/>
+        <path d="M28.4 21c.6-.4 1.1-.2 1.4.4l.5 1.1c.2.5 0 .9-.4 1.2l-.4.3c.4.9 1.1 1.6 2 2l.3-.4c.3-.4.7-.6 1.2-.4l1.1.5c.6.3.7.8.4 1.4-.6.9-1.6 1.3-2.6.9-2.2-.7-3.8-2.4-4.6-4.6-.3-.9 0-2 .8-2.6z" fill="#e8f6ff"/>
+        <circle cx="31" cy="38.6" r="5.4" fill="#06142e" stroke="#2f9bff" stroke-width="1.5"/>
+        <circle cx="31" cy="38.6" r="2.5" fill="#2f8fe8"/>
+        <path d="M29.8 37.8c.3-.2.6-.1.7.2l.2.5-.2.6c.2.4.5.7.9.9l.6-.2.5.2c.3.1.3.4.2.6-.3.4-.8.6-1.2.4-1-.3-1.7-1-2-2-.2-.4 0-.9.3-1.2z" fill="#d9f0ff"/>
+        <circle cx="23.4" cy="46.6" r="1.2" fill="#2f8fe8"/><circle cx="38.6" cy="46.6" r="1.2" fill="#2f8fe8"/>
+        <rect x="26" y="45.4" width="10" height="2.4" rx="1.2" fill="#161d2b"/>
+        <path d="M19.2 16.6c.6-2.4 2.4-3.6 4.6-3.6" stroke="#5aa6ff" stroke-width=".8" fill="none" opacity=".7"/>
+      </g>
+    </svg>`,
+
+  currywurst: `
+    <svg viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="24.2" fill="#d4d2cf"/>
+      <circle cx="32" cy="31.6" r="21" fill="url(#g-plate)"/>
+      <ellipse cx="30" cy="25" rx="14" ry="11" fill="#f6e6c6"/>
+      <path d="M36.4 13c3.4-.8 6 1.2 6 3.8 2.6.4 4 2.8 3 5 2.2 1.4 2.2 4.4.2 5.8 1 2.6-.8 5-3.4 5.2-.8 2.6-3.8 3.4-5.8 1.6-2.4.6-4.6-1-4.2-3.4-2.2-1-2.6-4-.6-5.4-1.4-2-.6-4.8 1.6-5.6-.2-2.8 1.2-6.4 3.2-7z" fill="#e5352a"/>
+      <path d="M38 15.4c1.8-.2 3 .8 3.2 2M41.4 23.6c1 .2 1.8 1 2 2" stroke="#ff7a5e" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <g transform="rotate(-28 27 40)">
+        <ellipse cx="27" cy="40" rx="12.4" ry="7.8" fill="#f0b16c"/>
+        <ellipse cx="25" cy="38" rx="7" ry="3.4" fill="#f7c78c" opacity=".7"/>
+      </g>
+      <g fill="#dc5a3a"><circle cx="23" cy="38" r=".9"/><circle cx="27" cy="36.4" r=".9"/><circle cx="30.4" cy="38.6" r=".9"/><circle cx="25" cy="42" r=".9"/><circle cx="29" cy="42.4" r=".9"/><circle cx="21" cy="42.6" r=".8"/></g>
+      <g transform="rotate(-40 42 41)">
+        <path d="M34 39h16v5.2H34z" fill="#9b5634"/>
+        <path d="M34 39l-4.4-2.2v9.6L34 44.2zM50 39l4.4-2.2v9.6L50 44.2z" fill="#8a4a2b"/>
+        <path d="M35 40.2h14" stroke="#c07a52" stroke-width="1" opacity=".7"/>
+      </g>
+    </svg>`,
+
+  doener: `
+    <svg viewBox="0 0 64 64">
+      <g transform="rotate(12 32 31)">
+        <path d="M19.4 17.4c2.8-2.2 22.4-2.2 25.2 0L40.4 45.6c-.8 4.2-4.4 6-8.4 6s-7.6-1.8-8.4-6z" fill="url(#g-wrap)"/>
+        <path d="M20.2 19.4c6.4 5.4 14 13.6 18.6 25" stroke="#c4903e" stroke-width="1.3" fill="none"/>
+        <path d="M21.6 25.6l6 1.2M22.6 31.4l7.4 1.4M23.4 37.2l9 1.6M24.6 43l9.6 1.6M33.4 22.6l8.6 1.6M36.6 29l4.6.8M37.8 35l2.4.6" stroke="#b57a30" stroke-width="1.5" stroke-linecap="round" opacity=".55"/>
+        <path d="M19.6 18.4c-.6-3.2 2.4-4.6 4.4-3.8 1-2.4 3.8-2.6 5.2-1.2 1.2-1.4 3.6-1.2 4.6.2 1.4-1 3.8-.6 4.4 1 2.6-.4 4.8 1.4 4.2 3.8-4.6 1.6-18.2 1.6-22.8 0z" fill="#58b13d"/>
+        <path d="M20.4 17.4c1.6-.4 2.8.4 3.4 1.4" stroke="#3d8c2a" stroke-width="1" fill="none"/>
+        <circle cx="38.6" cy="14.2" r="5" fill="#e3402e"/><circle cx="37.4" cy="12.8" r="1.5" fill="#ff8270"/>
+        <ellipse cx="29.4" cy="15" rx="3.6" ry="2.8" fill="#8b4524"/><ellipse cx="25.4" cy="16.4" rx="2.6" ry="2.1" fill="#a2562c"/><ellipse cx="32.6" cy="17.4" rx="2.4" ry="1.7" fill="#7a3a1c"/><ellipse cx="34" cy="13.6" rx="2" ry="1.6" fill="#9b4f28"/>
+        <path d="M27.4 19c2 .8 4 2.6 4.6 4.6" stroke="#f6f1e6" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+      </g>
+    </svg>`,
+
+  eisen: `
+    <svg viewBox="0 0 64 64">
+      <use href="#ingot" x="9" y="40"/>
+      <use href="#ingot" x="23" y="40"/>
+      <use href="#ingot" x="12.5" y="28.5"/>
+      <use href="#ingot" x="25.5" y="28.5"/>
+      <use href="#ingot" x="18" y="16"/>
+    </svg>`,
+
+  energy: `
+    <svg viewBox="0 0 64 64">
+      <rect x="21.6" y="9" width="18.8" height="45" rx="3" fill="url(#g-can)"/>
+      <rect x="22.4" y="7.4" width="17.2" height="3.4" rx="1.6" fill="url(#g-silver)"/>
+      <rect x="22.4" y="52.4" width="17.2" height="2.6" rx="1.2" fill="url(#g-silver)" opacity=".8"/>
+      <rect x="23.4" y="12.6" width="15.2" height="3" rx=".6" fill="url(#g-gold)"/>
+      <path d="M24.4 17.6h13.2" stroke="#c99a26" stroke-width=".9" opacity=".85"/>
+      <path d="M31 20.4l2.9 8.2h8.7l-7 5.2 2.6 8.4L31 37l-7.2 5.2 2.6-8.4-7-5.2h8.7z" fill="url(#g-gold)"/>
+      <path d="M31 26.4l1.4 4h4.2l-3.4 2.5 1.3 4.1-3.5-2.5-3.5 2.5 1.3-4.1-3.4-2.5h4.2z" fill="#1a1406"/>
+      <path d="M31 20.4v16.6M23.8 42.2L31 37l7.2 5.2" stroke="#7a560e" stroke-width=".6" fill="none" opacity=".6"/>
+      <rect x="23.8" y="44.8" width="14.4" height="1.8" fill="#d9a92a"/>
+      <rect x="25" y="48" width="12" height="1.3" fill="#9a9a9a" opacity=".8"/>
+      <rect x="24.4" y="10.5" width="2.2" height="41" rx="1.1" fill="#ffffff" opacity=".13"/>
+    </svg>`,
+
+  kuchen: `
+    <svg viewBox="0 0 64 64">
+      <ellipse cx="32" cy="47.6" rx="23.4" ry="6" fill="url(#g-cake-plate)"/>
+      <ellipse cx="32" cy="46.6" rx="19.6" ry="4.2" fill="#d8f0fc" opacity=".55"/>
+      <path d="M13.6 28v15.6c0 2.8 8.2 5.2 18.4 5.2s18.4-2.4 18.4-5.2V28z" fill="url(#g-cake-side)"/>
+      <path d="M13.6 28c0 2.6 8.2 4.8 18.4 4.8S50.4 30.6 50.4 28v5.6c-.8.6-1.4.6-1.6 3-.2 2-1.8 2-2-.2-.2-1.6-1-1-1.4.6-.4 2.4-2 2.2-2.2-.2-.1-1.4-1.2-1.2-1.4.4-.4 3-2 3-2.2 0-.2-1.4-1.2-1.4-1.4.2-.4 2.6-2 2.6-2.2 0-.2-1.4-1.4-1.4-1.6.2-.4 3.4-2.2 3.4-2.4 0-.1-1.4-1.2-1.4-1.4 0-.4 2.6-2 2.6-2.2-.2-.1-1.2-1.2-1.4-1.6 0-.6 2-2 1.8-2.2-.4-.2-1.8-1.2-1.4-1.6-.2V28z" fill="#fff6f2"/>
+      <ellipse cx="32" cy="28" rx="18.4" ry="5.2" fill="#fde9e4"/>
+      <g fill="#ffffff">
+        <circle cx="18.4" cy="27.4" r="2.8"/><circle cx="24.6" cy="24.8" r="3"/><circle cx="39.6" cy="24.8" r="3"/><circle cx="45.8" cy="27.2" r="2.8"/><circle cx="32" cy="29.8" r="3"/><circle cx="24.4" cy="30.2" r="2.4"/><circle cx="40" cy="30.2" r="2.4"/><circle cx="32" cy="24" r="2.6"/>
+      </g>
+      <g fill="url(#g-straw)">
+        <ellipse cx="32" cy="18.2" rx="5.8" ry="6.2"/>
+        <ellipse cx="22.4" cy="22" rx="3.6" ry="3.8"/><ellipse cx="41.6" cy="21.8" rx="3.6" ry="3.8"/>
+        <circle cx="47.2" cy="25.2" r="2.4"/><circle cx="16.8" cy="25.6" r="2.4"/><circle cx="28" cy="27.4" r="2"/><circle cx="36.2" cy="27.6" r="2"/><circle cx="20.8" cy="29.6" r="1.6"/><circle cx="43.6" cy="29.4" r="1.6"/>
+      </g>
+      <path d="M29.6 12.6c.8-1.8 2.8-2 3.8-.8 1.2-1 3-.6 3.4.6-1.4.4-3.2.8-4.6 1.6-.8-.6-1.8-1-2.6-1.4z" fill="#3e9a3a"/>
+      <path d="M20.8 17.8l1.6 1.6 1.4-1.8M40.2 17.4l1.4 1.8 1.6-1.4M46.2 22.4l1 1.2 1.2-1" stroke="#3e9a3a" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <circle cx="30.2" cy="16.2" r="1.3" fill="#ffffff" opacity=".6"/><circle cx="21.4" cy="20.8" r=".8" fill="#ffffff" opacity=".5"/><circle cx="40.6" cy="20.6" r=".8" fill="#ffffff" opacity=".5"/>
+      <g fill="#3fb0d8"><circle cx="27.4" cy="23" r=".9"/><circle cx="37" cy="23.2" r=".8"/><circle cx="34.6" cy="30.6" r=".7"/></g>
+    </svg>`,
+
+  saft: `
+    <svg viewBox="0 0 64 64">
+      <path d="M40.4 16.6V8.2c0-1.2.8-2 2-2h5.4" fill="none" stroke="#6f6f6f" stroke-width="3" stroke-linecap="round"/>
+      <path d="M40.4 16.6V8.2c0-1.2.8-2 2-2h5.4" fill="none" stroke="#d6d6d6" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M19.5 18.5l4.4-4.6h22l-4.6 4.6z" fill="#fbd3dc" stroke="#b9677b" stroke-width="1.1" stroke-linejoin="round"/>
+      <path d="M41.3 18.5l4.6-4.6V48.6l-4.6 4.6z" fill="#ea9aae" stroke="#b9677b" stroke-width="1.1" stroke-linejoin="round"/>
+      <rect x="19.5" y="18.5" width="21.8" height="34.7" fill="url(#g-juice)" stroke="#b9677b" stroke-width="1.1"/>
+      <g>
+        <path d="M21.8 28.6c0-3 2.2-4.6 4.4-4.6s4.4 1.6 4.4 4.6c0 3.4-2.4 6.6-4.4 6.6s-4.4-3.2-4.4-6.6z" fill="#e3304a" stroke="#9e1f33" stroke-width=".8"/>
+        <path d="M30.6 28.2c0-3 2.2-4.6 4.4-4.6s4.4 1.6 4.4 4.6c0 3.4-2.4 6.6-4.4 6.6s-4.4-3.2-4.4-6.6z" fill="#e3304a" stroke="#9e1f33" stroke-width=".8"/>
+        <path d="M23.6 24.6l2.6 1.4 2.6-1.4M32.4 24.2l2.6 1.4 2.6-1.4" stroke="#3f9a3a" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        <g fill="#ffe0a8"><circle cx="24.6" cy="29" r=".5"/><circle cx="27.6" cy="29.4" r=".5"/><circle cx="26" cy="31.6" r=".5"/><circle cx="33.4" cy="28.6" r=".5"/><circle cx="36.4" cy="29" r=".5"/><circle cx="34.8" cy="31.4" r=".5"/></g>
+      </g>
+      <text x="30.4" y="44.6" text-anchor="middle" font-family="'Comic Sans MS', 'Segoe Print', cursive" font-size="5.2" font-weight="700" fill="#5e2431">JUiCE</text>
+    </svg>`
+};
+
+/* =========================================================
+   ITEMS
+   ========================================================= */
+const ITEMS = [
+  { label: 'Asservaten-Semtex', icon: 'semtex',     count: 9,  weight: 2, glow: 'rgba(255,240,220,.28)' },
+  { label: 'Ast',               icon: 'ast',        count: 2,  weight: 1, glow: 'rgba(200,140,90,.18)' },
+  { label: 'Bandage',           icon: 'bandage',    count: 17, weight: 1, glow: 'rgba(255,170,190,.32)' },
+  { label: 'Bier',              icon: 'bier',       count: 1,  weight: 1, glow: 'rgba(255,205,70,.38)' },
+  { label: 'Blei',              icon: 'blei',       count: 14, weight: 1, glow: 'rgba(255,255,255,.16)' },
+  { label: 'Blei (1kg)',        icon: 'blei',       count: 1,  weight: 2, glow: 'rgba(255,255,255,.16)' },
+  { label: 'Boombox',           icon: 'mikro',      count: 2,  weight: 3, glow: 'rgba(255,255,255,.10)' },
+  { label: 'Bruchstein',        icon: 'stein',      count: 1,  weight: 1, glow: 'rgba(255,245,235,.22)' },
+  { label: 'Burger',            icon: 'burger',     count: 4,  weight: 1, glow: 'rgba(255,170,110,.26)' },
+  { label: 'Caller',            icon: 'caller',     count: 4,  weight: 1, glow: 'rgba(60,150,255,.30)' },
+  { label: 'Currywurst',        icon: 'currywurst', count: 1,  weight: 1, glow: 'rgba(255,240,225,.32)' },
+  { label: 'Döner',             icon: 'doener',     count: 1,  weight: 1, glow: 'rgba(255,200,110,.26)' },
+  { label: 'Eisen',             icon: 'eisen',      count: 2,  weight: 1, glow: 'rgba(255,255,255,.14)' },
+  { label: 'Energy-Drink',      icon: 'energy',     count: 2,  weight: 1, glow: 'rgba(255,210,80,.18)' },
+  { label: 'Erdbeer-Kuchen',    icon: 'kuchen',     count: 1,  weight: 1, glow: 'rgba(160,215,255,.30)' },
+  { label: 'Erdbeer-Saft',      icon: 'saft',       count: 1,  weight: 1, glow: 'rgba(255,170,195,.30)' }
+];
+
+const WEIGHT_CURRENT = 392;
+const WEIGHT_MAX     = 1250;
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+const grid = document.getElementById('inv-grid');
+
+/* lange Namen wie im Original kürzen: 15 Zeichen + "..." */
+function shortLabel(label) {
+  return label.length > 16 ? label.slice(0, 15) + '...' : label;
+}
+
+function renderItems() {
+  grid.innerHTML = ITEMS.map((it, i) => `
+    <div class="item" data-index="${i}" data-label="${it.label.toLowerCase()}" title="${it.label}">
+      <div class="item-name">${shortLabel(it.label)}</div>
+      <div class="item-img" style="--glow:${it.glow}">${ICONS[it.icon]}</div>
+      <div class="item-qty">${it.count}X</div>
+      <div class="item-kg">${it.weight} KG</div>
+    </div>`).join('');
+}
+
+function setWeight(cur, max) {
+  document.getElementById('inv-bar-fill').style.width = Math.min(100, cur / max * 100) + '%';
+  document.getElementById('inv-kg').innerHTML = `<span><b>${cur}</b>/${max} KG</span>`;
+}
+
+renderItems();
+setWeight(WEIGHT_CURRENT, WEIGHT_MAX);
+
+/* Suche */
+document.getElementById('inv-search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  grid.querySelectorAll('.item').forEach(el => {
+    el.classList.toggle('is-hidden', q && !el.dataset.label.includes(q));
+  });
+});
+
+/* Schließen (Button + ESC). In FiveM wird zusätzlich ein NUI-Callback gesendet. */
+function closeInventory() {
+  document.getElementById('inventory').classList.add('hidden');
+  if (typeof GetParentResourceName === 'function') {
+    fetch(`https://${GetParentResourceName()}/close`, { method: 'POST', body: '{}' }).catch(() => {});
+  }
+}
+document.getElementById('inv-close').addEventListener('click', closeInventory);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInventory(); });
+</script>
+</body>
+</html>
