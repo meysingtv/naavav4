@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="tile_w">208dp</dimen>
+    <dimen name="tile_h">117dp</dimen>
+    <dimen name="tile_gap">22dp</dimen>
+    <dimen name="tile_radius">14dp</dimen>
+    <dimen name="screen_pad">56dp</dimen>
+</resources>
